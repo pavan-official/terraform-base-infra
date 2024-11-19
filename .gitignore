@@ -1,0 +1,16 @@
+*.tfstate
+*.tfstate.backup
+
+# Crash logs
+crash.log
+
+# Terraform variables file containing sensitive data
+*.tfvars
+*.tfvars.json
+
+# Terraform CLI configuration
+.terraformrc
+terraform.rc
+
+# Ignore Terraform cache directory
+.terraform/
