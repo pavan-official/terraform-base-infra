@@ -98,4 +98,7 @@ resource "aws_instance" "web-1" {
     Owner      = "pavan"
     CostCenter = "ABCD"
   }
+  lifecycle {
+    prevent_destroy = true
+  }
 }
