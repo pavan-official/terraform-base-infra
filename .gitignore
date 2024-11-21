@@ -1,0 +1,38 @@
+# Local Terraform state
+*.tfstate
+*.tfstate.backup
+
+# Crash log files
+crash.log
+
+# Terraform variable files that may contain sensitive data
+*.tfvars
+*.tfvars.json
+
+# Ignore override files as they are usually local
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Terraform working directory
+.terraform/
+
+# CLI configuration files
+.terraformrc
+terraform.rc
+
+# Ignore sensitive cloud provider files (e.g., AWS credentials, GCP keys, etc.)
+# Adjust based on the provider you're using
+.aws/
+.gcp/
+.azure/
+
+# Ignore editor-specific files
+.idea/
+.vscode/
+*.swp
+
+# Ignore system files
+.DS_Store
+Thumbs.db
