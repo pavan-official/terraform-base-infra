@@ -5,9 +5,9 @@ provider "aws" {
 
 terraform {
   backend "s3" {
-    bucket         = "terra-workspace-bucket"
-    key            = "workspace.tfstate"
-    region         = "us-east-1"
+    bucket = "terra-workspace-bucket"
+    key    = "workspace.tfstate"
+    region = "us-east-1"
     #dynamodb_table = "dynamodb-state-locking"
   }
 }
