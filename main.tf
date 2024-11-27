@@ -1,4 +1,3 @@
-
 provider "aws" {
   region = var.region_name
 }
@@ -11,106 +10,103 @@ terraform {
     #dynamodb_table = "dynamodb-state-locking"
   }
 }
-resource "aws_vpc" "vpc-Terraform" {
+resource "aws_vpc" "vpc-terraform" {
   cidr_block           = var.vpc_cidr_block
   enable_dns_hostnames = true
   enable_dns_support   = true
 
   tags = {
-    Name    = var.vpc_tag_name
-    service = "Terraform"
+    Name        = var.vpc_tag_name
+    service     = local.service
+    owner       = local.owner
+    costcenter  = local.costcenter
+    TeamDL      = local.TeamDL
+    environment = var.environment
   }
 }
 
 resource "aws_internet_gateway" "Ig-Terraform" {
-  vpc_id = aws_vpc.vpc-Terraform.id
+  vpc_id = aws_vpc.vpc-terraform.id
 
   tags = {
-    Name    = var.ig_tag_name
+    Name    = "${var.vpc_tag_name}-igw"
     Service = "Terraform"
   }
 }
-
-resource "aws_subnet" "Public-Subnet1-Terraform" {
-  vpc_id                  = aws_vpc.vpc-Terraform.id
-  cidr_block              = var.public_subnet1_cidr
-  map_public_ip_on_launch = true
-  availability_zone       = "us-east-1a"
-
-  tags = {
-    Name    = var.public_subnet1_cidr
-    Service = "Terraform"
-  }
-}
-resource "aws_subnet" "Public-Subnet2-Terraform" {
-  vpc_id                  = aws_vpc.vpc-Terraform.id
-  cidr_block              = var.public_subnet2_cidr
-  map_public_ip_on_launch = true
-  availability_zone       = "us-east-1b"
-
-  tags = {
-    Name    = var.public_subnet2_cidr
-    Service = "Terraform"
-  }
-}
-resource "aws_subnet" "Public-Subnet3-Terraform" {
-  vpc_id                  = aws_vpc.vpc-Terraform.id
-  cidr_block              = var.public_subnet3_cidr
-  map_public_ip_on_launch = true
-  availability_zone       = "us-east-1c"
-
-  tags = {
-    Name    = var.public_subnet3_cidr
-    Service = "Terraform"
-  }
-}
-
-resource "aws_route_table" "Public-RT-Terraform" {
-  vpc_id = aws_vpc.vpc-Terraform.id
+resource "aws_route_table" "public-rt-terraform" {
+  vpc_id = aws_vpc.vpc-terraform.id
 
   route {
     cidr_block = var.rt_cidr_block
     gateway_id = aws_internet_gateway.Ig-Terraform.id
   }
   tags = {
-    Name    = var.rt_tag_name
-    Service = "Terraform"
+    Name        = "${var.vpc_tag_name}-Public-RT"
+    service     = local.service
+    owner       = local.owner
+    costcenter  = local.costcenter
+    TeamDL      = local.TeamDL
+    environment = var.environment
   }
 }
-resource "aws_route_table_association" "Public-RT-Terraform" {
-  subnet_id      = aws_subnet.Public-Subnet1-Terraform.id
-  route_table_id = aws_route_table.Public-RT-Terraform.id
-}
-
-resource "aws_security_group" "allow_all" {
-  vpc_id = aws_vpc.vpc-Terraform.id
-
-  ingress {
-    description = "Allow all inbound traffic"
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    description = "Allow SSH"
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  egress {
-    description = "Allow all outbound traffic"
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
+resource "aws_route_table" "private-rt-terraform" {
+  vpc_id = aws_vpc.vpc-terraform.id
 
   tags = {
-    Name    = "SG-Terra"
-    Service = "Terraform"
+    Name        = "${var.vpc_tag_name}-Private-RT"
+    service     = local.service
+    owner       = local.owner
+    costcenter  = local.costcenter
+    TeamDL      = local.TeamDL
+    environment = var.environment
   }
+}
+
+resource "aws_subnet" "public_subnet" {
+  count                   = length(var.public_cidr_block)
+  vpc_id                  = aws_vpc.vpc-terraform.id
+  cidr_block              = element(var.public_cidr_block, count.index)
+  map_public_ip_on_launch = true
+  availability_zone       = element(var.azs, count.index)
+
+  tags = {
+    Name        = "${var.vpc_tag_name}-Public-Subnet-${count.index}"
+    service     = local.service
+    owner       = local.owner
+    costcenter  = local.costcenter
+    TeamDL      = local.TeamDL
+    environment = var.environment
+  }
+}
+resource "aws_subnet" "private_subnet" {
+  count                   = length(var.private_cidr_block)
+  vpc_id                  = aws_vpc.vpc-terraform.id
+  cidr_block              = element(var.private_cidr_block, count.index)
+  map_public_ip_on_launch = true
+  availability_zone       = element(var.azs, count.index + 1)
+
+  tags = {
+    Name        = "${var.vpc_tag_name}-Private-Subnet-${count.index}"
+    service     = local.service
+    owner       = local.owner
+    costcenter  = local.costcenter
+    TeamDL      = local.TeamDL
+    environment = var.environment
+  }
+}
+
+
+resource "aws_route_table_association" "public-rt-terraform-association" {
+  count          = length(var.public_cidr_block)
+  subnet_id      = aws_subnet.public_subnet[count.index].id
+  route_table_id = aws_route_table.public-rt-terraform.id
+}
+resource "aws_main_route_table_association" "disable_main_rt" {
+  vpc_id         = aws_vpc.vpc-terraform.id
+  route_table_id = aws_route_table.public-rt-terraform.id
+}
+resource "aws_route_table_association" "private-rt-terraform-association" {
+  count          = length(var.private_cidr_block)
+  subnet_id      = aws_subnet.private_subnet[count.index].id
+  route_table_id = aws_route_table.private-rt-terraform.id
 }

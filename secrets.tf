@@ -1,35 +1,23 @@
+# Generate a random password
 resource "random_password" "db_password" {
   length           = 16
   special          = true
-  override_special = "_%!" # Exclude invalid characters like `/`, `@`, `"`, and spaces
+  override_special = "_%@"
 }
 
 # KMS Key for encrypting the secret
-resource "aws_kms_key" "secrets_key" {
-  description             = "KMS key for encrypting secrets in Secrets Manager"
-  enable_key_rotation     = true
-  deletion_window_in_days = 30
-
-  tags = {
-    Environment = "Production"
-    Owner       = "DevOpsTeam"
-  }
+data "aws_kms_key" "secrets_key" {
+  key_id = "arn:aws:kms:us-east-1:585008053469:key/0a681f53-38e1-4a00-a869-0abe26539356"
 }
 
 # Secrets Manager Secret
-resource "aws_secretsmanager_secret" "db_secret" {
-  name       = "prod-db-password"
-  kms_key_id = aws_kms_key.secrets_key.arn
-
-  tags = {
-    Environment = "Production"
-    Owner       = "DevOpsTeam"
-  }
+data "aws_secretsmanager_secret" "db_secret" {
+  name = "prod-db-password"
 }
 
 # Secrets Manager Secret Version
 resource "aws_secretsmanager_secret_version" "db_secret_version" {
-  secret_id = aws_secretsmanager_secret.db_secret.id
+  secret_id = data.aws_secretsmanager_secret.db_secret.id
   secret_string = jsonencode({
     password = random_password.db_password.result
   })
@@ -46,7 +34,7 @@ resource "aws_iam_policy" "secrets_access_policy" {
       {
         Effect   = "Allow",
         Action   = ["secretsmanager:GetSecretValue"],
-        Resource = aws_secretsmanager_secret.db_secret.arn
+        Resource = data.aws_secretsmanager_secret.db_secret.arn
       }
     ]
   })
